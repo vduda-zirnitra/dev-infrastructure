@@ -1,0 +1,62 @@
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: dev-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - dev-network
+
+  # Uncomment to add RabbitMQ
+  # rabbitmq:
+  #   image: rabbitmq:management
+  #   container_name: dev-rabbitmq
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5672:5672"   # AMQP
+  #     - "15672:15672" # Management UI
+  #   environment:
+  #     RABBITMQ_DEFAULT_USER: admin
+  #     RABBITMQ_DEFAULT_PASS: admin
+  #   volumes:
+  #     - rabbitmq_data:/var/lib/rabbitmq
+  #   networks:
+  #     - dev-network
+
+  # Uncomment to add Redis
+  # redis:
+  #   image: redis:latest
+  #   container_name: dev-redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - dev-network
+
+volumes:
+  postgres_data:
+    driver: local
+  # rabbitmq_data:
+  #   driver: local
+  # redis_data:
+  #   driver: local
+
+networks:
+  dev-network:
+    driver: bridge

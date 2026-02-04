@@ -1,0 +1,23 @@
+# Docker volumes
+postgres_data/
+*.log
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+docker-compose.override.yml
+
+# Backup files
+*.bak
+*.backup
