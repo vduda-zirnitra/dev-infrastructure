@@ -14,7 +14,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "🔧 Creating database and user..." -ForegroundColor Cyan
+Write-Host "[*] Creating database and user..." -ForegroundColor Cyan
 Write-Host ""
 
 # Check if Docker is installed
@@ -24,7 +24,7 @@ try {
         throw "Docker not available"
     }
 } catch {
-    Write-Host "❌ Error: Docker is not installed or not in PATH" -ForegroundColor Red
+    Write-Host "[ERROR] Docker is not installed or not in PATH" -ForegroundColor Red
     exit 1
 }
 
@@ -32,33 +32,33 @@ try {
 try {
     $containerRunning = docker ps --format "{{.Names}}" | Where-Object { $_ -eq "dev-postgres" }
     if (-not $containerRunning) {
-        Write-Host "❌ Error: Container 'dev-postgres' is not running" -ForegroundColor Red
+        Write-Host "[ERROR] Container 'dev-postgres' is not running" -ForegroundColor Red
         Write-Host ""
         Write-Host "Please start the PostgreSQL container first:" -ForegroundColor Yellow
         Write-Host "  .\scripts\init-postgres.ps1"
         exit 1
     }
 } catch {
-    Write-Host "❌ Error: Failed to check container status" -ForegroundColor Red
+    Write-Host "[ERROR] Failed to check container status" -ForegroundColor Red
     exit 1
 }
 
 # Validate database name (alphanumeric, underscore, hyphen)
 if ($DatabaseName -notmatch '^[a-zA-Z0-9_-]+$') {
-    Write-Host "❌ Error: Invalid database name. Use only letters, numbers, underscores, and hyphens." -ForegroundColor Red
+    Write-Host "[ERROR] Invalid database name. Use only letters, numbers, underscores, and hyphens." -ForegroundColor Red
     exit 1
 }
 
 # Validate username (alphanumeric, underscore)
 if ($Username -notmatch '^[a-zA-Z0-9_]+$') {
-    Write-Host "❌ Error: Invalid username. Use only letters, numbers, and underscores." -ForegroundColor Red
+    Write-Host "[ERROR] Invalid username. Use only letters, numbers, and underscores." -ForegroundColor Red
     exit 1
 }
 
 # Convert hyphen to underscore for database name (PostgreSQL best practice)
 $DbNameClean = $DatabaseName -replace '-', '_'
 if ($DatabaseName -ne $DbNameClean) {
-    Write-Host "ℹ️  Note: Database name converted from '$DatabaseName' to '$DbNameClean' (hyphens replaced with underscores)" -ForegroundColor Yellow
+    Write-Host "[INFO] Note: Database name converted from '$DatabaseName' to '$DbNameClean' (hyphens replaced with underscores)" -ForegroundColor Yellow
     $DatabaseName = $DbNameClean
 }
 
@@ -90,14 +90,14 @@ GRANT ALL PRIVILEGES ON DATABASE $DatabaseName TO $Username;
 "@
 
 # Execute SQL commands
-Write-Host "⏳ Executing SQL commands..." -ForegroundColor Yellow
+Write-Host "[*] Executing SQL commands..." -ForegroundColor Yellow
 try {
     $sqlCommands | docker exec -i dev-postgres psql -U postgres
     if ($LASTEXITCODE -ne 0) {
         throw "SQL execution failed"
     }
 } catch {
-    Write-Host "❌ Error: Failed to execute SQL commands" -ForegroundColor Red
+    Write-Host "[ERROR] Failed to execute SQL commands" -ForegroundColor Red
     exit 1
 }
 
@@ -122,7 +122,7 @@ try {
         throw "Schema privileges setup failed"
     }
 } catch {
-    Write-Host "⚠️  Warning: Some schema privileges may not have been set correctly" -ForegroundColor Yellow
+    Write-Host "[WARNING] Some schema privileges may not have been set correctly" -ForegroundColor Yellow
 }
 
 # Verify database creation
@@ -131,28 +131,28 @@ try {
 
     if ($dbExists -match "1") {
         Write-Host ""
-        Write-Host "✅ Database and user created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Database and user created successfully!" -ForegroundColor Green
         Write-Host ""
-        Write-Host "📋 Database Details:" -ForegroundColor Cyan
+        Write-Host "[*] Database Details:" -ForegroundColor Cyan
         Write-Host "   Database: $DatabaseName"
         Write-Host "   Username: $Username"
         Write-Host "   Password: $Password"
         Write-Host "   Host: localhost"
         Write-Host "   Port: 5432"
         Write-Host ""
-        Write-Host "🔗 Connection String:" -ForegroundColor Cyan
+        Write-Host "[*] Connection String:" -ForegroundColor Cyan
         Write-Host "   postgresql://${Username}:${Password}@localhost:5432/$DatabaseName"
         Write-Host ""
-        Write-Host "📝 JDBC URL:" -ForegroundColor Cyan
+        Write-Host "[*] JDBC URL:" -ForegroundColor Cyan
         Write-Host "   jdbc:postgresql://localhost:5432/$DatabaseName"
         Write-Host ""
-        Write-Host "💡 Test Connection:" -ForegroundColor Cyan
+        Write-Host "[*] Test Connection:" -ForegroundColor Cyan
         Write-Host "   docker exec -it dev-postgres psql -U $Username -d $DatabaseName"
         Write-Host ""
     } else {
-        Write-Host "❌ Error: Database creation verification failed" -ForegroundColor Red
+        Write-Host "[ERROR] Database creation verification failed" -ForegroundColor Red
         exit 1
     }
 } catch {
-    Write-Host "⚠️  Warning: Could not verify database creation" -ForegroundColor Yellow
+    Write-Host "[WARNING] Could not verify database creation" -ForegroundColor Yellow
 }
