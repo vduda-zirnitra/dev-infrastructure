@@ -43,6 +43,7 @@ dev-infrastructure/
 - [Quick Start](#quick-start)
 - [Available Services](#available-services)
 - [PostgreSQL Database Management](#postgresql-database-management)
+- [Liquibase Database Migrations](#liquibase-database-migrations)
 - [Redis Key Management](#redis-key-management)
 - [Service Management](#service-management)
 - [Connection Information](#connection-information)
@@ -137,6 +138,7 @@ The initialization script will:
 |------------|----------------|-----------------|--------------------------|---------|
 | PostgreSQL | dev-postgres   | 5432            | postgres / postgres      | ✅ Active |
 | Redis      | dev-redis      | 6379            | (none - no auth)         | ✅ Active |
+| Liquibase  | dev-liquibase  | N/A (tool)      | N/A (uses project config)| ✅ Active |
 
 ### Available to Enable
 
@@ -215,6 +217,82 @@ C:\Users\YourName\IdeaProjects\dev-infrastructure\scripts\add-database.ps1 my_pr
 # From any project directory (Linux/Mac)
 ~/projects/dev-infrastructure/scripts/add-database.sh my_project_db my_user
 ```
+
+---
+
+## 🔄 Liquibase Database Migrations
+
+### Overview
+
+Liquibase is available as a containerized tool for database schema management without requiring local installation. Run it from any project to manage migrations against the PostgreSQL infrastructure.
+
+### Usage from Your Project
+
+**Basic Command Structure:**
+
+```bash
+docker compose -f <path-to-dev-infrastructure>/docker-compose.yml run --rm \
+  -v <your-changelog-dir>:/liquibase/changelog \
+  -e LIQUIBASE_COMMAND_URL=jdbc:postgresql://dev-postgres:5432/<database> \
+  -e LIQUIBASE_COMMAND_USERNAME=<username> \
+  -e LIQUIBASE_COMMAND_PASSWORD=<password> \
+  -e LIQUIBASE_COMMAND_CHANGELOG_FILE=changelog/<your-changelog-file> \
+  liquibase <command>
+```
+
+### Example: Run Migrations
+
+**Windows:**
+```powershell
+docker compose -f C:\Users\YourName\IdeaProjects\dev-infrastructure\docker-compose.yml run --rm `
+  -v ${PWD}/db/changelog:/liquibase/changelog `
+  -e LIQUIBASE_COMMAND_URL=jdbc:postgresql://dev-postgres:5432/myapp `
+  -e LIQUIBASE_COMMAND_USERNAME=myapp_user `
+  -e LIQUIBASE_COMMAND_PASSWORD=password `
+  -e LIQUIBASE_COMMAND_CHANGELOG_FILE=changelog/db.changelog-master.xml `
+  liquibase update
+```
+
+**Linux/Mac:**
+```bash
+docker compose -f ~/projects/dev-infrastructure/docker-compose.yml run --rm \
+  -v $(pwd)/db/changelog:/liquibase/changelog \
+  -e LIQUIBASE_COMMAND_URL=jdbc:postgresql://dev-postgres:5432/myapp \
+  -e LIQUIBASE_COMMAND_USERNAME=myapp_user \
+  -e LIQUIBASE_COMMAND_PASSWORD=password \
+  -e LIQUIBASE_COMMAND_CHANGELOG_FILE=changelog/db.changelog-master.xml \
+  liquibase update
+```
+
+### Common Commands
+
+```bash
+# Check migration status
+liquibase status
+
+# Apply all pending migrations
+liquibase update
+
+# Rollback last changeset
+liquibase rollback-count 1
+
+# Validate changelog
+liquibase validate
+
+# Generate changelog from existing database
+liquibase generate-changelog --changelog-file=changelog/generated.xml
+```
+
+### Required Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `LIQUIBASE_COMMAND_URL` | JDBC connection URL | `jdbc:postgresql://dev-postgres:5432/mydb` |
+| `LIQUIBASE_COMMAND_USERNAME` | Database username | `myapp_user` |
+| `LIQUIBASE_COMMAND_PASSWORD` | Database password | `password` |
+| `LIQUIBASE_COMMAND_CHANGELOG_FILE` | Path to changelog (inside container) | `changelog/db.changelog-master.xml` |
+
+**Note:** The container connects to `dev-postgres` via the Docker network. Use `dev-postgres` as the hostname, not `localhost`.
 
 ---
 
