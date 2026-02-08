@@ -43,6 +43,7 @@ dev-infrastructure/
 - [Quick Start](#quick-start)
 - [Available Services](#available-services)
 - [PostgreSQL Database Management](#postgresql-database-management)
+- [Redis Key Management](#redis-key-management)
 - [Service Management](#service-management)
 - [Connection Information](#connection-information)
 - [Scripts Reference](#scripts-reference)
@@ -135,6 +136,7 @@ The initialization script will:
 | Service    | Container Name | Ports           | Admin Credentials        | Status  |
 |------------|----------------|-----------------|--------------------------|---------|
 | PostgreSQL | dev-postgres   | 5432            | postgres / postgres      | ✅ Active |
+| Redis      | dev-redis      | 6379            | (none - no auth)         | ✅ Active |
 
 ### Available to Enable
 
@@ -143,7 +145,6 @@ The following services are pre-configured but commented out in `docker-compose.y
 | Service    | Container Name | Ports           | Admin Credentials        | Management UI         |
 |------------|----------------|-----------------|--------------------------|------------------------|
 | RabbitMQ   | dev-rabbitmq   | 5672, 15672     | admin / admin            | http://localhost:15672 |
-| Redis      | dev-redis      | 6379            | (none - no auth)         | N/A                   |
 
 To enable a service, edit `docker-compose.yml` and uncomment the relevant section, then run:
 
@@ -213,6 +214,231 @@ C:\Users\YourName\IdeaProjects\dev-infrastructure\scripts\add-database.ps1 my_pr
 
 # From any project directory (Linux/Mac)
 ~/projects/dev-infrastructure/scripts/add-database.sh my_project_db my_user
+```
+
+---
+
+## 🔴 Redis Key Management
+
+### Overview
+
+Unlike PostgreSQL where each application can have its own database, Redis is a single shared keyspace. To prevent key collisions between different applications, **each application must use a unique key prefix**.
+
+### ⚠️ Important: Key Prefix Convention
+
+**All applications MUST prefix their Redis keys** to avoid conflicts. The recommended format is:
+
+```
+<app-name>:<feature>:<key>
+```
+
+Examples:
+- `userservice:cache:user:123`
+- `orderservice:session:abc-def-ghi`
+- `authservice:ratelimit:api:192.168.1.1`
+
+### Implementation Options
+
+#### Option 1: Framework-Level Configuration (Recommended)
+
+Most frameworks support automatic key prefixing at the configuration level, so developers don't need to manually add prefixes everywhere.
+
+##### Java (Spring Boot)
+
+**application.yml:**
+```yaml
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  cache:
+    redis:
+      key-prefix: "myapp:"
+      use-key-prefix: true
+```
+
+**application.properties:**
+```properties
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+spring.cache.redis.key-prefix=myapp:
+spring.cache.redis.use-key-prefix=true
+```
+
+**Usage (prefix is automatic):**
+```java
+@Service
+public class UserService {
+    @Autowired
+    private RedisTemplate<String, String> redisTemplate;
+    
+    public void cacheUser(String userId, String userData) {
+        // Automatically becomes "myapp:user:123"
+        redisTemplate.opsForValue().set("user:" + userId, userData);
+    }
+}
+```
+
+##### Rust (Custom Wrapper)
+
+Rust doesn't have a built-in framework feature, so create a wrapper around the Redis client:
+
+**src/redis_client.rs:**
+```rust
+use redis::{Client, Connection, RedisResult, Commands};
+
+pub struct PrefixedRedisClient {
+    connection: Connection,
+    prefix: String,
+}
+
+impl PrefixedRedisClient {
+    pub fn new(redis_url: &str, prefix: &str) -> RedisResult<Self> {
+        let client = Client::open(redis_url)?;
+        let connection = client.get_connection()?;
+        Ok(Self {
+            connection,
+            prefix: prefix.to_string(),
+        })
+    }
+
+    fn prefixed_key(&self, key: &str) -> String {
+        format!("{}:{}", self.prefix, key)
+    }
+
+    pub fn set(&mut self, key: &str, value: &str) -> RedisResult<()> {
+        self.connection.set(self.prefixed_key(key), value)
+    }
+
+    pub fn get(&mut self, key: &str) -> RedisResult<String> {
+        self.connection.get(self.prefixed_key(key))
+    }
+
+    pub fn del(&mut self, key: &str) -> RedisResult<()> {
+        self.connection.del(self.prefixed_key(key))
+    }
+
+    pub fn exists(&mut self, key: &str) -> RedisResult<bool> {
+        self.connection.exists(self.prefixed_key(key))
+    }
+
+    pub fn expire(&mut self, key: &str, seconds: usize) -> RedisResult<()> {
+        self.connection.expire(self.prefixed_key(key), seconds)
+    }
+}
+```
+
+**Usage:**
+```rust
+// In main.rs or wherever you initialize your app
+let mut redis = PrefixedRedisClient::new(
+    "redis://localhost:6379", 
+    "myapp"
+)?;
+
+// Keys are automatically prefixed with "myapp:"
+redis.set("user:123", "John Doe")?;
+redis.set("session:abc", "active")?;
+
+let user_data: String = redis.get("user:123")?;
+```
+
+#### Option 2: Manual Prefixing (Not Recommended)
+
+If framework-level configuration isn't available, manually add prefixes:
+
+```java
+// Java - Manual
+String APP_PREFIX = "myapp:";
+redisTemplate.opsForValue().set(APP_PREFIX + "user:123", userData);
+```
+
+```rust
+// Rust - Manual
+const APP_PREFIX: &str = "myapp:";
+connection.set(format!("{}user:123", APP_PREFIX), "data")?;
+```
+
+**⚠️ Drawback**: Easy to forget, error-prone, not enforced.
+
+### Redis Features and Prefixes
+
+All Redis features work with prefixed keys:
+
+#### Caching
+```java
+// Spring: "myapp:product:456"
+@Cacheable(value = "product", key = "#productId")
+public Product getProduct(String productId) { ... }
+```
+
+#### Pub/Sub
+```rust
+// Publish to "myapp:notifications"
+redis.publish("myapp:notifications", "New order received")?;
+```
+
+#### Rate Limiting
+```java
+// Key: "myapp:ratelimit:user:789"
+String key = "ratelimit:user:" + userId;
+Long requests = redisTemplate.opsForValue().increment(key);
+redisTemplate.expire(key, 60, TimeUnit.SECONDS);
+```
+
+### Connection Information
+
+**Redis Connection:**
+```
+Host: localhost
+Port: 6379
+URL:  redis://localhost:6379
+
+No authentication by default (suitable for local development)
+```
+
+### Best Practices
+
+1. ✅ **Define prefix in environment variables or config files**
+   ```properties
+   REDIS_KEY_PREFIX=myapp
+   ```
+
+2. ✅ **Use descriptive prefixes that match your application name**
+   ```
+   userservice:*
+   orderservice:*
+   authservice:*
+   ```
+
+3. ✅ **Include feature/purpose in the key structure**
+   ```
+   myapp:cache:*
+   myapp:session:*
+   myapp:queue:*
+   ```
+
+4. ❌ **Don't use generic prefixes like "app" or "data"**
+
+5. ✅ **Document your key prefix convention in your project README**
+
+### Debugging Keys
+
+To see all keys for your application:
+
+```bash
+# Connect to Redis CLI
+docker exec -it dev-redis redis-cli
+
+# List all keys with your prefix
+KEYS myapp:*
+
+# Count keys
+KEYS myapp:* | wc -l
+
+# Delete all keys for your app (be careful!)
+redis-cli KEYS "myapp:*" | xargs redis-cli DEL
 ```
 
 ---
