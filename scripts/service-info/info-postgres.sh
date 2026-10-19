@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # info-postgres.sh - Display PostgreSQL connection information
 

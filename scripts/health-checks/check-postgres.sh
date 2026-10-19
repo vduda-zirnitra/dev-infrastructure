@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # check-postgres.sh - Health check for PostgreSQL
 # Returns exit code 0 if healthy, 1 if not

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # init-infrastructure.sh - Initialize all development infrastructure services
 # Usage: ./init-infrastructure.sh
@@ -157,10 +157,10 @@ for service in "${healthy_services[@]}"; do
 done
 
 echo "📝 Quick Commands:"
-echo "   View logs:        docker-compose logs -f"
-echo "   Stop services:    docker-compose down"
-echo "   Restart service:  docker-compose restart <service-name>"
-echo "   Service status:   docker-compose ps"
+echo "   View logs:        $COMPOSE logs -f"
+echo "   Stop services:    $COMPOSE down"
+echo "   Restart service:  $COMPOSE restart <service-name>"
+echo "   Service status:   $COMPOSE ps"
 echo ""
 echo "✅ Infrastructure initialization complete!"
 echo ""

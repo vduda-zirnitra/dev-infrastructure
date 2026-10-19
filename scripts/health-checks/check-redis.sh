@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # check-redis.sh - Health check for Redis
 # Returns exit code 0 if healthy, 1 if not

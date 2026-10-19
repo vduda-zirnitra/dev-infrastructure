@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # info-rabbitmq.sh - Display RabbitMQ connection information
 

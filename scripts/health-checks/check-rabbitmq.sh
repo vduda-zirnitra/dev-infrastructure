@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # check-rabbitmq.sh - Health check for RabbitMQ
 # Returns exit code 0 if healthy, 1 if not

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # add-database.sh - Create a new database and user in PostgreSQL
 # Usage: ./add-database.sh <database_name> <username> [password]
@@ -47,7 +47,7 @@ if ! docker ps --format '{{.Names}}' | grep -q "^dev-postgres$"; then
     echo -e "${RED}❌ Error: Container 'dev-postgres' is not running${NC}"
     echo ""
     echo "Please start the PostgreSQL container first:"
-    echo "  ./scripts/init-postgres.sh"
+    echo "  ./scripts/init-infrastructure.sh"
     exit 1
 fi
 

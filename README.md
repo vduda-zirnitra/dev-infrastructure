@@ -22,8 +22,6 @@ dev-infrastructure/
 ├── scripts/
 │   ├── init-infrastructure.ps1     # Start all services (Windows)
 │   ├── init-infrastructure.sh      # Start all services (Linux/Mac)
-│   ├── add-database.ps1            # Create PostgreSQL databases (Windows)
-│   ├── add-database.sh             # Create PostgreSQL databases (Linux/Mac)
 │   ├── health-checks/              # Service health check scripts
 │   │   ├── check-postgres.ps1/.sh
 │   │   ├── check-rabbitmq.ps1/.sh
@@ -34,7 +32,8 @@ dev-infrastructure/
 │       └── info-redis.ps1/.sh
 └── database/
     └── postgre/                    # PostgreSQL-specific configurations
-        └── README.md
+        ├── add-database.ps1        # Create PostgreSQL databases (Windows)
+        └── add-database.sh         # Create PostgreSQL databases (Linux/Mac)
 ```
 
 ## 📋 Table of Contents
@@ -99,7 +98,7 @@ cd C:\Users\YourName\IdeaProjects\dev-infrastructure
 .\scripts\init-infrastructure.ps1
 
 # 3. Create your first PostgreSQL database
-.\scripts\add-database.ps1 myapp myapp_user mySecurePassword123
+.\database\postgre\add-database.ps1 myapp myapp_user mySecurePassword123
 ```
 
 #### Linux / Mac
@@ -112,13 +111,16 @@ cd ~/projects/dev-infrastructure
 chmod +x scripts/*.sh
 chmod +x scripts/health-checks/*.sh
 chmod +x scripts/service-info/*.sh
+chmod +x database/postgre/*.sh
 
-# 3. Start the infrastructure
+# 3. Start the infrastructure (Docker must be running)
 ./scripts/init-infrastructure.sh
 
 # 4. Create your first PostgreSQL database
-./scripts/add-database.sh myapp myapp_user mySecurePassword123
+./database/postgre/add-database.sh myapp myapp_user mySecurePassword123
 ```
+
+> **macOS note:** there is no native Docker daemon on macOS. Start Docker Desktop (or OrbStack / Colima) before running the scripts.
 
 ### What Happens?
 
@@ -169,21 +171,21 @@ Use the `add-database` scripts to create new databases with dedicated users:
 #### Windows
 
 ```powershell
-.\scripts\add-database.ps1 <database_name> <username> [password]
+.\database\postgre\add-database.ps1 <database_name> <username> [password]
 
 # Examples:
-.\scripts\add-database.ps1 myapp myapp_user                    # Password defaults to "password"
-.\scripts\add-database.ps1 auth_service auth_user MySecret123  # Custom password
+.\database\postgre\add-database.ps1 myapp myapp_user                    # Password defaults to "password"
+.\database\postgre\add-database.ps1 auth_service auth_user MySecret123  # Custom password
 ```
 
 #### Linux/Mac
 
 ```bash
-./scripts/add-database.sh <database_name> <username> [password]
+./database/postgre/add-database.sh <database_name> <username> [password]
 
 # Examples:
-./scripts/add-database.sh myapp myapp_user                    # Password defaults to "password"
-./scripts/add-database.sh auth_service auth_user MySecret123  # Custom password
+./database/postgre/add-database.sh myapp myapp_user                    # Password defaults to "password"
+./database/postgre/add-database.sh auth_service auth_user MySecret123  # Custom password
 ```
 
 ### What the Script Does
@@ -212,10 +214,10 @@ Copy the `add-database` script to your project or run it from this repository:
 
 ```bash
 # From any project directory (Windows)
-C:\Users\YourName\IdeaProjects\dev-infrastructure\scripts\add-database.ps1 my_project_db my_user
+C:\Users\YourName\IdeaProjects\dev-infrastructure\database\postgre\add-database.ps1 my_project_db my_user
 
 # From any project directory (Linux/Mac)
-~/projects/dev-infrastructure/scripts/add-database.sh my_project_db my_user
+~/projects/dev-infrastructure/database/postgre/add-database.sh my_project_db my_user
 ```
 
 ---
